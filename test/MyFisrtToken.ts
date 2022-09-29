@@ -1,119 +1,144 @@
-// This is an example test file. Hardhat will run every *.js file in `test/`,
-// so feel free to add new ones.
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { Contract } from '@ethersproject/contracts';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import * as chai from "chai";
+const chaiAsPromised = require('chai-as-promised');
+chai.use(chaiAsPromised);
+import { keccak256 } from 'ethers/lib/utils';
 
-// Hardhat tests are normally written with Mocha and Chai.
+function parseEther(amount: Number) {
+  return ethers.utils.parseUnits(amount.toString(), 18);
+}
 
-// We import Chai to use its asserting functions here.
-const { expect } = require("chai");
+describe("Vault", function () {
+  let owner: SignerWithAddress,
+    alice: SignerWithAddress,
+    bob: SignerWithAddress,
+    carol: SignerWithAddress;
 
-// We use `loadFixture` to share common setups (or fixtures) between tests.
-// Using this simplifies your tests and makes them run faster, by taking
-// advantage of Hardhat Network's snapshot functionality.
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+  let vault:Contract;
+  let token:Contract;
 
-// `describe` is a Mocha function that allows you to organize your tests.
-// Having your tests organized makes debugging them easier. All Mocha
-// functions are available in the global scope.
-//
-// `describe` receives the name of a section of your test suite, and a
-// callback. The callback must define the tests of that section. This callback
-// can't be an async function.
-describe("Token contract", function () {
-  // We define a fixture to reuse the same setup in every test. We use
-  // loadFixture to run this setup once, snapshot that state, and reset Hardhat
-  // Network to that snapshot in every test.
-  async function deployTokenFixture() {
-    // Get the ContractFactory and Signers here.
-    const Token = await ethers.getContractFactory("MyFisrtToken");
-    const [owner, addr1, addr2] = await ethers.getSigners();
+  beforeEach(async () => {
+    await ethers.provider.send("hardhat_reset", []);
+    [owner, alice, bob, carol] = await ethers.getSigners();
 
-    // To deploy our contract, we just have to call Token.deploy() and await
-    // its deployed() method, which happens onces its transaction has been
-    // mined.
-    const hardhatToken = await Token.deploy();
+    const Vault = await ethers.getContractFactory("MVault", owner);
+    vault = await Vault.deploy();
+    const Token = await ethers.getContractFactory("MyFisrtToken", owner);
+    token = await Token.deploy();
+    await vault.setToken(token.address);        
+})
 
-    await hardhatToken.deployed();
-
-    // Fixtures can return anything you consider useful for your tests
-    return { Token, hardhatToken, owner, addr1, addr2 };
-  }
-
-  // You can nest describe calls to create subsections.
-  describe("Deployment", function () {
-    // `it` is another Mocha function. This is the one you use to define each
-    // of your tests. It receives the test name, and a callback function.
-    //
-    // If the callback function is async, Mocha will `await` it.
-    it("Should set the right owner", async function () {
-      // We use loadFixture to setup our environment, and then assert that
-      // things went well
-      const { hardhatToken, owner } = await loadFixture(deployTokenFixture);
-
-      // `expect` receives a value and wraps it in an assertion object. These
-      // objects have a lot of utility methods to assert values.
-
-      // This test expects the owner variable stored in the contract to be
-      // equal to our Signer's owner.
-      expect(await hardhatToken.owner()).to.equal(owner.address);
-    });
-
-    it("Should assign the total supply of tokens to the owner", async function () {
-      const { hardhatToken, owner } = await loadFixture(deployTokenFixture);
-      const ownerBalance = await hardhatToken.balanceOf(owner.address);
-      expect(await hardhatToken.totalSupply()).to.equal(ownerBalance);
-    });
+  ////// Happy Path
+  it("Should deposit into the Vault", async () => {
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await vault.connect(alice).deposit(parseEther(500*10**3));
+    expect(await token.balanceOf(vault.address)).equal(parseEther(500 * 10**3));
   });
+  it("Should withdraw", async () => {
+    //grant withdrawer role to Bob
+    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
+    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
 
-  describe("Transactions", function () {
-    it("Should transfer tokens between accounts", async function () {
-      const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
-        deployTokenFixture
-      );
-      // Transfer 50 tokens from owner to addr1
-      await expect(
-        hardhatToken.transfer(addr1.address, 50)
-      ).to.changeTokenBalances(hardhatToken, [owner, addr1], [-50, 50]);
+    // setter vault functions
 
-      // Transfer 50 tokens from addr1 to addr2
-      // We use .connect(signer) to send a transaction from another account
-      await expect(
-        hardhatToken.connect(addr1).transfer(addr2.address, 50)
-      ).to.changeTokenBalances(hardhatToken, [addr1, addr2], [-50, 50]);
-    });
+    await vault.setWithdrawEnable(true);
+    await vault.setMaxWithdrawAmount(parseEther(1*10**6));
 
-    it("should emit Transfer events", async function () {
-      const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
-        deployTokenFixture
-      );
+    // alice deposit into the vault
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await vault.connect(alice).deposit(parseEther(500*10**3));
 
-      // Transfer 50 tokens from owner to addr1
-      await expect(hardhatToken.transfer(addr1.address, 50))
-        .to.emit(hardhatToken, "Transfer")
-        .withArgs(owner.address, addr1.address, 50);
-
-      // Transfer 50 tokens from addr1 to addr2
-      // We use .connect(signer) to send a transaction from another account
-      await expect(hardhatToken.connect(addr1).transfer(addr2.address, 50))
-        .to.emit(hardhatToken, "Transfer")
-        .withArgs(addr1.address, addr2.address, 50);
-    });
-
-    it("Should fail if sender doesn't have enough tokens", async function () {
-      const { hardhatToken, owner, addr1 } = await loadFixture(
-        deployTokenFixture
-      );
-      const initialOwnerBalance = await hardhatToken.balanceOf(owner.address);
-
-      // Try to send 1 token from addr1 (0 tokens) to owner (1000 tokens).
-      // `require` will evaluate false and revert the transaction.
-      await expect(
-        hardhatToken.connect(addr1).transfer(owner.address, 1)
-      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
-
-      // Owner balance shouldn't have changed.
-      expect(await hardhatToken.balanceOf(owner.address)).to.equal(
-        initialOwnerBalance
-      );
-    });
+    // bob withdraw into alice address
+    await vault.connect(bob).withdraw(parseEther(300*10**3),alice.address);
+    
+    expect(await token.balanceOf(vault.address)).equal(parseEther(200 * 10**3));
+    expect(await token.balanceOf(alice.address)).equal(parseEther(800 * 10**3));
   });
+  ///////Unhappy Path/////////
+  it("Should not deposit, Insufficient account balance", async () => {
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await expect (vault.connect(alice).deposit(parseEther(2 * 10**6))).revertedWith('Insufficient account balance');
+  });
+  it("Should not withdraw, Withdraw is not available ", async () => {
+    //grant withdrawer role to Bob
+    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
+    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
+
+    // setter vault functions
+
+    await vault.setWithdrawEnable(false);
+    await vault.setMaxWithdrawAmount(parseEther(1*10**6));
+
+    // alice deposit into the vault
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await vault.connect(alice).deposit(parseEther(500*10**3));
+
+    // bob withdraw into alice address
+    await expect (vault.connect(bob).withdraw(parseEther(300*10**3),alice.address)).revertedWith('Withdraw is not available');
+   
+  });
+  it("Should not withdraw, Exceed maximum amount ", async () => {
+    //grant withdrawer role to Bob
+    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
+    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
+
+    // setter vault functions
+
+    await vault.setWithdrawEnable(true);
+    await vault.setMaxWithdrawAmount(parseEther(1*10**3));
+
+    // alice deposit into the vault
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await vault.connect(alice).deposit(parseEther(500*10**3));
+
+    // bob withdraw into alice address
+    await expect (vault.connect(bob).withdraw(parseEther(2*10**3),alice.address)).revertedWith('Exceed maximum amount');
+   
+  });
+  it("Should not withdraw, Caller is not a withdrawer", async () => {
+    //grant withdrawer role to Bob
+    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
+    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
+
+    // setter vault functions
+
+    await vault.setWithdrawEnable(true);
+    await vault.setMaxWithdrawAmount(parseEther(1*10**3));
+
+    // alice deposit into the vault
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await vault.connect(alice).deposit(parseEther(500*10**3));
+
+    // bob withdraw into alice address
+    await expect (vault.connect(carol).withdraw(parseEther(1*10**3),alice.address)).revertedWith('Caller is not a withdrawer');
+   
+  })
+  it("Should not withdraw, ERC20: transfer amount exceeds balance", async () => {
+    //grant withdrawer role to Bob
+    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
+    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
+
+    // setter vault functions
+
+    await vault.setWithdrawEnable(true);
+    await vault.setMaxWithdrawAmount(parseEther(5*10**3));
+
+    // alice deposit into the vault
+    await token.transfer(alice.address,parseEther(1 * 10**6));
+    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
+    await vault.connect(alice).deposit(parseEther(2*10**3));
+
+    // bob withdraw into alice address
+    await expect (vault.connect(bob).withdraw(parseEther(3*10**3),alice.address)).revertedWith('ERC20: transfer amount exceeds balance');
+   
+  })
 });

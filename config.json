@@ -1,0 +1,9 @@
+{
+  "dev": {},
+  "bsc": {},
+  "main": {},
+  "bsctest": {
+    "MKT01": "0xdCA179343cDE489B6f574b8A46Fa5b5BD84Ccc04",
+    "Vault": "0x0259AeFfe89A016486589b1740A2bb7C6A47ac36"
+  }
+}
