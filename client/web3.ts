@@ -3,6 +3,7 @@ export type { dotenv };
 //import * as dotenv from './dotenv';
 import { AbiItem } from 'web3-utils';
 dotenv.config({ path: __dirname + "./../.env" });
+import * as ethers from "ethers";
 import Web3 from "web3";
 const abi = [
     {
@@ -398,24 +399,16 @@ async function sentToken(){
     const web3 = await new Web3('https://data-seed-prebsc-1-s1.binance.org:8545');
     const tokenContract = await new web3.eth.Contract(abi as AbiItem[],tokenAddress);
     const myBalanceBefore = await tokenContract.methods.balanceOf(myAddress).call();
-    console.log(pri_key);
     web3.eth.accounts.wallet.add(pri_key ?? "");
     console.log("Balance Before: " + myBalanceBefore);
-    var rs = await tokenContract.methods.transfer(reciverAddress,4000000).send({
-        from: myAddress,
-        gas:200000
-    });
-
-
-    const myBalanceAlter = await tokenContract.methods.balanceOf(myAddress).call();
-    const myBalanceReciver = await tokenContract.methods.balanceOf(reciverAddress).call();
-   
-    const totalSupply = await tokenContract.methods.totalSupply().call();
-   
-    console.log("Balance Alter: " + myBalanceAlter);
-    console.log("Balance Reciver: " + myBalanceReciver);
-    
-    console.log("totalSupply: " + totalSupply);
+    // var rs = await tokenContract.methods.transfer(reciverAddress,4000000).send({
+    //     from: myAddress,
+    //     gas:200000
+    // });
+    var rs = await tokenContract.methods.increaseAllowance('0x0259AeFfe89A016486589b1740A2bb7C6A47ac36',ethers.utils.parseEther('5000')).send({
+      from: myAddress,
+      gas:100000
+  });
     console.log("Block Result: " + JSON.stringify(rs));
 }
 sentToken();
