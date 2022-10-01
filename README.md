@@ -12,6 +12,8 @@ npx hardhat node
 npx hardhat run scripts/deploy.ts
 ```
 
-Project referenced from the author Quan IT
+Project referenced from the author Quan IT.
+
 Github: https://github.com/KelvinThai/Tutorial-workshop
+
 Youtube: https://www.youtube.com/watch?v=q7AWZvvS7WM
