@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "run": "node --loader ts-node/esm",
+    "start": "node --loader ts-node/esm",
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.ts --network",
     "test": "hardhat test",
