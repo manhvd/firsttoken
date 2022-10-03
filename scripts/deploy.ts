@@ -8,20 +8,25 @@ async function main() {
   console.log('deploy from address: ', deployer.address);
 
 
-  const MTK01 = await ethers.getContractFactory("MyFisrtToken");
-  const mtk01 = await MTK01.deploy();
-  console.log('MKT01 address: ', mtk01.address);
-  Config.setConfig(network + '.MKT01', mtk01.address);
+  // const MTK01 = await ethers.getContractFactory("MyFisrtToken");
+  // const mtk01 = await MTK01.deploy();
+  // console.log('MKT01 address: ', mtk01.address);
+  // Config.setConfig(network + '.MKT01', mtk01.address);
 
-  const MVault = await ethers.getContractFactory("MVault");
-  const mVault = await MVault.deploy();
-  console.log('Floppy address: ', mVault.address);
-  Config.setConfig(network + '.Vault', mVault.address);
+  // const MVault = await ethers.getContractFactory("MVault");
+  // const mVault = await MVault.deploy();
+  // console.log('MVault address: ', mVault.address);
+  // Config.setConfig(network + '.Vault', mVault.address);
   
-  // const Floppy = await ethers.getContractFactory("USDT");
-  // const floppy = await Floppy.deploy();
-  // console.log('USDT address: ', floppy.address);
-  //Config.setConfig(network + '.USDT', floppy.address);
+  const USDT = await ethers.getContractFactory("USDT");
+  const mtk01 = await USDT.deploy();
+  console.log('USDT address: ', mtk01.address);
+  Config.setConfig(network + '.USDT', mtk01.address);
+
+  const MTK01CrowdSale = await ethers.getContractFactory("MTK01CrowdSale");
+  const crowdSale = await MTK01CrowdSale.deploy(1000,100,'0xA3805bcc742598A6933411360538F4AdB2eDD438', '0xdCA179343cDE489B6f574b8A46Fa5b5BD84Ccc04');
+  console.log('MTK01CrowdSale address: ', crowdSale.address);
+  Config.setConfig(network + '.MTK01CrowdSale', crowdSale.address);
 
   // const Ico = await ethers.getContractFactory("FLPCrowdSale");
   // const ico = await Ico.deploy(1000,100,'0xdF8De3b50Be87dE8676c4731187c5DC5C00E70F3', '0xd54D6d5BD983a6cA18F8820f80E0A970FE4A9a8c');
