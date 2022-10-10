@@ -18,10 +18,10 @@ async function main() {
   // console.log('MVault address: ', mVault.address);
   // Config.setConfig(network + '.Vault', mVault.address);
   
-  const USDT = await ethers.getContractFactory("USDT");
-  const mtk01 = await USDT.deploy();
-  console.log('USDT address: ', mtk01.address);
-  Config.setConfig(network + '.USDT', mtk01.address);
+  // const USDT = await ethers.getContractFactory("USDT");
+  // const mtk01 = await USDT.deploy();
+  // console.log('USDT address: ', mtk01.address);
+  // Config.setConfig(network + '.USDT', mtk01.address);
 
   const MTK01CrowdSale = await ethers.getContractFactory("MTK01CrowdSale");
   const crowdSale = await MTK01CrowdSale.deploy(1000,100,'0xA3805bcc742598A6933411360538F4AdB2eDD438', '0xdCA179343cDE489B6f574b8A46Fa5b5BD84Ccc04');

@@ -65,8 +65,8 @@ contract MTK01CrowdSale is Ownable {
 
     function buyTokenByUSDT(uint256 USDTAmount) external {
         uint256 amount = getTokenAmountUSDT(USDTAmount);
-        require(
-            msg.sender.balance >= USDTAmount,
+         require(
+            usdtToken.balanceOf(msg.sender) >= USDTAmount,
             "Insufficient account balance"
         );
         require(amount > 0, "Amount is zero");
