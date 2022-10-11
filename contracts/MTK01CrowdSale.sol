@@ -65,14 +65,14 @@ contract MTK01CrowdSale is Ownable {
 
     function buyTokenByUSDT(uint256 USDTAmount) external {
         uint256 amount = getTokenAmountUSDT(USDTAmount);
-         require(
-            usdtToken.balanceOf(msg.sender) >= USDTAmount,
-            "Insufficient account balance"
-        );
+        //  require(
+        //     usdtToken.balanceOf(msg.sender) >= USDTAmount,
+        //     "Insufficient account balance"
+        // );
         require(amount > 0, "Amount is zero");
         require(
             token.balanceOf(address(this)) >= amount,
-            "Insufficient account balance"
+            "MTK01 not account balance"
         );
         SafeERC20.safeTransferFrom(usdtToken, msg.sender, _wallet, USDTAmount);
         SafeERC20.safeTransfer(token, msg.sender, amount);
